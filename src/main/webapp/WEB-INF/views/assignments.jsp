@@ -32,9 +32,9 @@
             <c:forEach items="${assignments}" var="assignment">
                 <tr>
                     <td>${assignment.created}</td>
-                    <td>${assignment.driver.firstName} ${assignment.driver.lastName}</td>
-                    <td>${assignment.bus.number}</td>
-                    <td>${assignment.route.number}</td>
+                    <td>${assignment.driver}</td>
+                    <td>${assignment.bus}</td>
+                    <td>${assignment.route}</td>
                     <td>${assignment.approved}</td>
                     <td>${assignment.cancelled}</td>
                     </tr>

@@ -32,12 +32,12 @@
                         </thead>
                         <tr>
                            <td>${assignment.created}</td>
-                           <td>${assignment.bus.number} ${assignment.bus.model}</td>
-                           <td>${assignment.route.number}</td>
+                           <td>${assignment.bus}</td>
+                           <td>${assignment.route}</td>
                            <td>
                             <c:choose>
                             <c:when test="${assignment.approved == null}">
-                                    <a href="<c:url value="/app/user/approve/${assignment.id}"/>">
+                                    <a href="<c:url value="/user/approve/${assignment.id}"/>">
                                    <button type="button" class="btn btn-danger"><fmt:message key = "user.approve"/></button></a>
                                  </c:when>
                                  <c:otherwise>

@@ -1,8 +1,12 @@
 package com.otto.ProjectSpring.entity;
 
+import com.otto.ProjectSpring.validation.NameConstraint;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.persistence.*;
+import javax.validation.constraints.Email;
+import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.Pattern;
 
 @Entity
 @Table(name = "drivers")
@@ -13,10 +17,19 @@ public class Driver {
     @Column(name = "id")
     private int id;
 
+    @NameConstraint(message = " {validation.driver.fname}")
     private String firstName;
+
+    @NameConstraint(message = " {validation.driver.lname}")
     private String lastName;
+
+    @Pattern(regexp = "\\+\\d{12}", message = " {validation.driver.phone.wrong}")
     private String phoneNumber;
+
+    @NotEmpty(message = " {validation.driver.email.empty}")
+    @Email(message = " {validation.driver.email.wrong}")
     private String email;
+
     private boolean ready;
     private boolean free;
 

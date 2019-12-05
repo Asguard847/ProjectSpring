@@ -1,6 +1,8 @@
 package com.otto.ProjectSpring.entity;
 
 import javax.persistence.*;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotEmpty;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,14 +15,26 @@ public class Route {
     @Column(name = "id")
     private int id;
 
+    @NotEmpty(message = " {validation.route.number}")
     private String number;
+
+    @NotEmpty(message = " {validation.route.start}")
     private String startPoint;
+
+    @NotEmpty(message = " {validation.route.end}")
     private String endPoint;
+
+    @Min(value = 0, message = "Length must not be less then 0")
     private int length;
 
     @OneToMany(mappedBy = "route")
     private List<Bus> buses = new ArrayList<>();
+
+    @Transient
     private int timeInterval;
+
+    @Transient
+    private int newBusId;
 
     public void addBus(Bus bus){
         buses.add(bus);
@@ -80,5 +94,13 @@ public class Route {
 
     public void setTimeInterval(int timeInterval) {
         this.timeInterval = timeInterval;
+    }
+
+    public int getNewBusId() {
+        return newBusId;
+    }
+
+    public void setNewBusId(int newBusId) {
+        this.newBusId = newBusId;
     }
 }

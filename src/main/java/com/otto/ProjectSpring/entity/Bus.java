@@ -1,6 +1,7 @@
 package com.otto.ProjectSpring.entity;
 
 import javax.persistence.*;
+import javax.validation.constraints.NotEmpty;
 
 @Entity
 @Table(name = "buses")
@@ -11,15 +12,19 @@ public class Bus {
     @Column(name = "id")
     private int id;
 
+    @NotEmpty(message = " {validation.bus.model}")
     private String model;
+
+    @NotEmpty(message = " {validation.bus.number}")
     private String number;
+
     private boolean ready;
 
-    @OneToOne(fetch = FetchType.EAGER)
+    @OneToOne(fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.REFRESH, CascadeType.MERGE})
     @JoinColumn(name="driver_id")
     private Driver driver;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.REFRESH, CascadeType.MERGE})
     @JoinColumn(name="route_id")
     private Route route;
 

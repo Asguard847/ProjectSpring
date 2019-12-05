@@ -33,7 +33,7 @@
             </thead>
             <c:forEach items="${drivers}" var="driver">
                 <tr>
-                    <td><img src="<c:url value="/images/${driver.id}.png"/>" alt="image" style="width: 100%" /></td>
+                    <td><img src="<c:url value="/${driver.id}.png"/>" alt="image" style="width: 100%" /></td>
                     <td>${driver.firstName}</td>
                     <td>${driver.lastName}</td>
                     <td>${driver.phoneNumber}</td>

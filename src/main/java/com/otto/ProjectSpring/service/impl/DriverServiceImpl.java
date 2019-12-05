@@ -1,50 +1,52 @@
 package com.otto.ProjectSpring.service.impl;
 
 import com.otto.ProjectSpring.ImageUtils;
+import com.otto.ProjectSpring.dao.BusRepository;
 import com.otto.ProjectSpring.dao.DriverRepository;
+import com.otto.ProjectSpring.dao.UserRepository;
 import com.otto.ProjectSpring.entity.Driver;
+import com.otto.ProjectSpring.entity.User;
+import com.otto.ProjectSpring.service.AssignmentService;
 import com.otto.ProjectSpring.service.DriverService;
+import org.passay.CharacterData;
+import org.passay.CharacterRule;
+import org.passay.EnglishCharacterData;
+import org.passay.PasswordGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
-
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.lang.invoke.MethodHandles;
-
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static com.otto.ProjectSpring.Constants.IMAGE_FOLDER;
-
 @Service
+@Transactional
 public class DriverServiceImpl implements DriverService {
 
     private static final Logger LOG = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-    private static final String F_NAME_MSG = "First name is incorrect";
-    private static final String L_NAME_MSG = "Last name is incorrect";
-    private static final String PHONE_MSG = "Phone number is incorrect";
-    private static final String EMAIL_MSG = "Email is incorrect";
-
-    private static final String FIRST_NAME = "firstName";
-    private static final String LAST_NAME = "lastName";
-    private static final String PHONE = "phone";
-    private static final String EMAIL = "email";
-    private static final String ID = "id";
-
-    private static final String NAME_PATTERN = "\\p{L}+";
-    private static final String PHONE_PATTERN = "\\+\\d{12}";
-    private static final String EMAIL_PATTERN = "^[A-Za-z0-9+_.-]+@(.+)$";
-
     @Resource
     DriverRepository driverRepository;
+
+    @Resource
+    BusRepository busRepository;
+
+    @Resource
+    AssignmentService assignmentService;
+
+    @Resource
+    UserRepository userRepository;
+
+    @Resource
+    BCryptPasswordEncoder bCryptPasswordEncoder;
 
     @Override
     public List<Driver> getAllDrivers() {
@@ -52,11 +54,13 @@ public class DriverServiceImpl implements DriverService {
     }
 
     @Override
-    public List<Driver> getFreeDrivers() {
+    public Map<Integer, String> getFreeDrivers() {
         List<Driver> allDrivers = (ArrayList) driverRepository.findAll();
-        List<Driver> freeDrivers = allDrivers.stream()
+        Map<Integer, String> freeDrivers = allDrivers.stream()
                 .filter(e -> e.isFree() && e.isReady())
-                .collect(Collectors.toList());
+                .collect(Collectors.toMap(Driver::getId,
+                        d-> d.getFirstName() + " " + d.getLastName()));
+        LOG.info("Got {} drivers ready for route", freeDrivers.size());
         return freeDrivers;
     }
 
@@ -66,146 +70,97 @@ public class DriverServiceImpl implements DriverService {
     }
 
     @Override
+    public Optional<Driver> getDriverByEmail(String email) {
+        return driverRepository.findByEmail(email);
+    }
+
+    @Override
     public void addDriver(Driver driver, HttpServletRequest request) {
         driver.setReady(true);
         driver.setFree(true);
         driverRepository.save(driver);
-        ImageUtils.saveImage(driver.getDriverImage(), request, IMAGE_FOLDER, driver.getId());
+        ImageUtils.saveImage(driver.getDriverImage(), request, driver.getId());
+        addUser(driver.getEmail());
         LOG.info("Driver {} persisted successfully", driver.getId());
     }
 
-   /* @Override
-    public Driver getDriverByEmail(String email) {
-
-        return driverDao.getDriverByEmail(email);
-    }
-
     @Override
-    public void addDriver(HttpServletRequest request) {
-
-        Driver driver = getDriverFromRequest(request);
-        int driverId = driverDao.addDriver(driver);
-        ImageUtils.saveImage(request, driverId);
-        LOG.info("Driver persisted: " + driverId);
-    }
-
-    @Override
-    public void deleteDriver(HttpServletRequest request) {
-
-        int id = (Integer) request.getAttribute(ID);
-        driverDao.deleteDriver(id);
+    public void deleteDriver(HttpServletRequest request, int id) {
+        Driver driver = driverRepository.findById(id).get();
+        deleteUser(driver.getEmail());
+        busRepository.removeDriver(id);
+        assignmentService.cancelAssignment(id);
+        driverRepository.deleteById(id);
         ImageUtils.deleteImage(request, id);
-        LOG.info("Driver deleted: " + id);
+        LOG.info("Successfully removed driver {}", id);
     }
 
     @Override
-    public void updateDriver(HttpServletRequest request) {
-
-        Driver driver = getDriverFromRequest(request);
-        int id = (Integer) request.getAttribute(ID);
-        driver.setId(id);
-        driverDao.updateDriver(driver);
+    public void updateDriver(Driver driver, HttpServletRequest request, int id) {
+        Driver oldDriver = driverRepository.findById(id).get();
+        oldDriver.setFirstName(driver.getFirstName());
+        oldDriver.setLastName(driver.getLastName());
+        oldDriver.setPhoneNumber(driver.getPhoneNumber());
+        oldDriver.setEmail(driver.getEmail());
+        driverRepository.save(oldDriver);
+        if(driver.getDriverImage()!=null){
+            ImageUtils.saveImage(driver.getDriverImage(), request, id);
+        }
+        LOG.info("Driver {} successfully updated", id);
     }
 
     @Override
-    public void setReady(int id, boolean ready) {
-        driverDao.setReady(id, ready);
+    @Transactional
+    public void setReady(int id) {
+        driverRepository.setReadyFor(true, id);
+        LOG.info("Driver {} is now ready", id);
     }
 
     @Override
-    public void setFree(int id, boolean free) {
-        driverDao.setFree(id, free);
+    @Transactional
+    public void setNotReady(int id) {
+        driverRepository.setReadyFor(false, id);
+        driverRepository.setFreeFor(true, id);
+        assignmentService.cancelAssignment(id);
+        busRepository.removeDriver(id);
+        LOG.info("Driver {} is now not ready", id);
     }
 
-    @Override
-    public boolean validateDriverInput(HttpServletRequest request) {
+    private String generatePassword() {
 
-        Driver driver = getDriverFromRequest(request);
+        PasswordGenerator gen = new PasswordGenerator();
+        CharacterData lowerCaseChars = EnglishCharacterData.LowerCase;
+        CharacterRule lowerCaseRule = new CharacterRule(lowerCaseChars);
+        lowerCaseRule.setNumberOfCharacters(3);
 
-        boolean driverInputIncorrect = false;
+        CharacterData upperCaseChars = EnglishCharacterData.UpperCase;
+        CharacterRule upperCaseRule = new CharacterRule(upperCaseChars);
+        upperCaseRule.setNumberOfCharacters(3);
 
-        if (validateFirstName(driver.getFirstName())) {
-            request.setAttribute("fNameVal", F_NAME_MSG);
-            driverInputIncorrect = true;
-        }
+        CharacterData digitChars = EnglishCharacterData.Digit;
+        CharacterRule digitRule = new CharacterRule(digitChars);
+        digitRule.setNumberOfCharacters(3);
 
-        if (validateLastName(driver.getLastName())) {
-            request.setAttribute("lNameVal", L_NAME_MSG);
-            driverInputIncorrect = true;
-        }
-
-        if (validatePhone(driver.getPhoneNumber())) {
-            request.setAttribute("phoneVal", PHONE_MSG);
-            driverInputIncorrect = true;
-        }
-
-        if (validateEmail(driver.getEmail())) {
-            request.setAttribute("emailVal", EMAIL_MSG);
-            driverInputIncorrect = true;
-        }
-
-        Object id = request.getAttribute(ID);
-        if (id != null) {
-            driver.setId((Integer) id);
-        }
-
-        request.setAttribute("driver", driver);
-
-        return driverInputIncorrect;
+        String password = gen.generatePassword(9, lowerCaseRule,
+                upperCaseRule, digitRule);
+        return password;
     }
 
-    private boolean validateFirstName(String firstName) {
-        if (nullOrEmpty(firstName)) {
-            return true;
-        }
-        return !matchesPattern(firstName, NAME_PATTERN);
+    private void addUser(String email){
+        User user = new User();
+        user.setUsername(email);
+        user.setAuthority("ROLE_USER");
+        user.setEnabled(true);
+
+        String password = generatePassword();
+        user.setPassword(bCryptPasswordEncoder.encode(password));
+        userRepository.save(user);
+        LOG.info("User {} with password {} successfully added", email, password);
     }
 
-    private boolean validateLastName(String lastName) {
-        if (nullOrEmpty(lastName)) {
-            return true;
-        }
-        return !matchesPattern(lastName, NAME_PATTERN);
+    private void deleteUser(String email){
+        userRepository.deleteByUsername(email);
+        LOG.info("User {} has been deleted", email);
     }
-
-    private boolean validatePhone(String phone) {
-        if (nullOrEmpty(phone)) {
-            return true;
-        }
-        return !matchesPattern(phone, PHONE_PATTERN);
-    }
-
-    private boolean validateEmail(String email) {
-        if (nullOrEmpty(email)) {
-            return true;
-        }
-        return !matchesPattern(email, EMAIL_PATTERN);
-    }
-
-    private Driver getDriverFromRequest(HttpServletRequest request) {
-
-        String firstName = request.getParameter(FIRST_NAME);
-        String lastName = request.getParameter(LAST_NAME);
-        String phone = request.getParameter(PHONE);
-        String email = request.getParameter(EMAIL);
-
-        Driver driver = new Driver();
-        driver.setFirstName(firstName);
-        driver.setLastName(lastName);
-        driver.setPhoneNumber(phone);
-        driver.setEmail(email);
-
-        return driver;
-    }
-
-    private boolean nullOrEmpty(String val) {
-        return val == null || val.isEmpty();
-    }
-
-    private boolean matchesPattern(String val, String patternString) {
-        Pattern pattern = Pattern.compile(patternString);
-        Matcher matcher = pattern.matcher(val);
-        return matcher.matches();
-    }*/
 }
 

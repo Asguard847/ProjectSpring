@@ -1,6 +1,15 @@
 package com.otto.ProjectSpring.entity;
 
+import javax.persistence.*;
+
+@Entity
+@Table(name = "users")
 public class User {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    @Column(name = "id")
+    private int id;
 
     private String username;
     private String password;

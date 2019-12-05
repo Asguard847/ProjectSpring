@@ -1,5 +1,6 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<%@ taglib prefix="sec" uri="http://www.springframework.org/security/tags" %>
 <%@taglib uri="http://www.springframework.org/tags" prefix="spring"%>
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 
@@ -57,17 +58,17 @@
                 </div>
                 <div id="navbar" class="navbar-collapse collapse">
                     <ul class="nav navbar-nav">
-                      <c:if test="${user.authority == 'ROLE_ADMIN'}">
-                         <li><a href="<c:url value="/app/admin"/> "><spring:message code="header.admin"/></a></li>
-                      </c:if>
+                      <sec:authorize access="hasRole('ADMIN')">
+                         <li><a href="<c:url value="/admin"/> "><spring:message code="header.admin"/></a></li>
+                      </sec:authorize>
                     </ul>
                     <ul class="nav navbar-nav pull-right">
 
                            <li><a><spring:message code="header.choose"/></a></li>
                            <li><a href="?locale=ru">rus</a></li>
                            <li><a href="?locale=en">en</a></li>
-                        <c:if test="${user != null}">
-                            <li><a href="<c:url value="/app/logout"/> "><fmt:message key = "header.logout"/></a></li>
+                        <c:if test="${pageContext.request.userPrincipal.name != null}">
+                            <li><a href="<c:url value="/logout"/> "><fmt:message key = "header.logout"/></a></li>
                         </c:if>
 
                     </ul>

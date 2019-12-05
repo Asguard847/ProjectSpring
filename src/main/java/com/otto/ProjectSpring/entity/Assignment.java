@@ -3,6 +3,8 @@ package com.otto.ProjectSpring.entity;
 import javax.persistence.*;
 import java.util.Date;
 
+import static javax.persistence.TemporalType.DATE;
+
 @Entity
 @Table(name = "assignments")
 public class Assignment {
@@ -12,20 +14,16 @@ public class Assignment {
     @Column(name = "id")
     private int id;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name="driver_id")
-    private Driver driver;
+    private String driver;
+    private String bus;
+    private String route;
+    private int driverId;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name="bus_id")
-    private Bus bus;
-
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name="route_id")
-    private Route route;
-
+    @Temporal(DATE)
     private Date approved;
+    @Temporal(DATE)
     private Date cancelled;
+    @Temporal(DATE)
     private Date created;
 
     public int getId() {
@@ -34,30 +32,6 @@ public class Assignment {
 
     public void setId(int id) {
         this.id = id;
-    }
-
-    public Driver getDriver() {
-        return driver;
-    }
-
-    public void setDriver(Driver driver) {
-        this.driver = driver;
-    }
-
-    public Bus getBus() {
-        return bus;
-    }
-
-    public void setBus(Bus bus) {
-        this.bus = bus;
-    }
-
-    public Route getRoute() {
-        return route;
-    }
-
-    public void setRoute(Route route) {
-        this.route = route;
     }
 
     public Date getApproved() {
@@ -82,5 +56,37 @@ public class Assignment {
 
     public void setCreated(Date created) {
         this.created = created;
+    }
+
+    public String getDriver() {
+        return driver;
+    }
+
+    public void setDriver(String driver) {
+        this.driver = driver;
+    }
+
+    public String getBus() {
+        return bus;
+    }
+
+    public void setBus(String bus) {
+        this.bus = bus;
+    }
+
+    public String getRoute() {
+        return route;
+    }
+
+    public void setRoute(String route) {
+        this.route = route;
+    }
+
+    public int getDriverId() {
+        return driverId;
+    }
+
+    public void setDriverId(int driverId) {
+        this.driverId = driverId;
     }
 }

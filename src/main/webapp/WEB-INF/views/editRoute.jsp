@@ -1,3 +1,4 @@
+<%@taglib prefix="form" uri="http://www.springframework.org/tags/form"%>
 <%@include file="/WEB-INF/views/template/header.jsp"%>
 
 
@@ -9,43 +10,27 @@
             <p class="lead"><fmt:message key = "edit.routes.fill"/></p>
         </div>
 
-         <form name="addRouteForm" action="<c:url value="/app/admin/routes/editRoute/${route.id}"/>" method="post">
+         <form:form action="${pageContext.request.contextPath}/admin/routes/editRoute/${route.id}" modelAttribute="route" method="post">
 
-        <c:if test="${not empty numberVal}">
-            <div class="error" style="color: #ff0000">${numberVal}</div>
-        </c:if>
+         <div class="form-group">
+                    <label for="number"><fmt:message key = "routes.number"/></label><form:errors path="number" cssStyle="color: #ff0000" />
+                    <form:input type="text"  path="number" class="form-Control" />
+                </div>
 
-            <div class="form-group">
-            <label for="number"><fmt:message key = "routes.number"/></label>
-            <input type="text" name="number" class="form-Control" value="${route.number}"/>
-        </div>
+                <div class="form-group">
+                    <label for="start"><fmt:message key = "routes.start"/></label><form:errors path="startPoint" cssStyle="color: #ff0000" />
+                    <form:input type="text"  path="startPoint" class="form-Control"/>
+                </div>
 
-        <c:if test="${not empty startVal}">
-             <div class="error" style="color: #ff0000">${startVal}</div>
-        </c:if>
+                <div class="form-group">
+                    <label for="end"><fmt:message key = "routes.end"/></label><form:errors path="endPoint" cssStyle="color: #ff0000" />
+                    <form:input type="text"  path="endPoint" class="form-Control" />
+                </div>
 
-            <div class="form-group">
-            <label for="start"><fmt:message key = "routes.start"/></label>
-            <input type="text" name="start" class="form-Control" value="${route.startPoint}"/>
-        </div>
-
-        <c:if test="${not empty endVal}">
-            <div class="error" style="color: #ff0000">${endVal}</div>
-        </c:if>
-
-            <div class="form-group">
-            <label for="end"><fmt:message key = "routes.end"/></label>
-            <input type="text" name="end" class="form-Control" value="${route.endPoint}"/>
-        </div>
-
-         <c:if test="${not empty lengthVal}">
-            <div class="error" style="color: #ff0000">${lengthVal}</div>
-          </c:if>
-
-        <div class="form-group">
-           <label for="length"><fmt:message key = "routes.length"/></label>
-           <input type="text" name="length" class="form-Control" value="${route.length}"/>
-        </div>
+                <div class="form-group">
+                   <label for="length"><fmt:message key = "routes.length"/>(meters)</label><form:errors path="length" cssStyle="color: #ff0000" />
+                   <form:input type="text" path="length" class="form-Control"/>
+                </div>
 
         <br><br>
 
@@ -70,28 +55,33 @@
                             <td>${bus.driver.firstName} ${bus.driver.lastName}</td>
 
                             <td>
-                                <a href="<c:url value="/app/admin/routes/deleteBusFromRoute/${bus.id}"/>">
+                                <a href="<c:url value="/admin/routes/deleteBusFromRoute/${bus.id}"/>">
                                     <button type="button" class="btn btn-danger"><fmt:message key = "button.delete"/></button></a>
                             </td>
                         </tr>
                     </c:forEach>
                 </table>
 
+                <br><br>
+
+                <p class="lead"><fmt:message key = "routes.interval"/>: ${route.timeInterval}</p>
+
                <br><br>
 
                <div class="form-group">
                    <label for="driverSelect"><fmt:message key = "routes.assign"/></label>
-                   <select class="form-control" id="busSelect" name="busSelect">
-                       <option value="none"><fmt:message key = "option.none"/></option>
-                       <c:forEach items="${buses}" var="bus">
-                           <option value="${bus.id}">${bus.model}    ${bus.driver.firstName} ${bus.driver.lastName}</option>
-                       </c:forEach>
-                   </select>
+                    <form:select path="newBusId">
+                       <form:option value="0" label = "none"/>
+                       <form:options items="${buses}" />
+                   </form:select>
                </div>
         <br><br>
         <input type="submit" value="<fmt:message key = "button.submit"/>" class="btn btn-default">
 
-        </form>
+        <a href="<c:url value="/admin/routes"/>">
+         <button type="button" class="btn btn-secondary"><fmt:message key = "button.back"/></button></a>
+
+       </form:form>
 
         <br><br>
 

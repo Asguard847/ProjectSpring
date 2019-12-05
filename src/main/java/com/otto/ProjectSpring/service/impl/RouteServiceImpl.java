@@ -1,154 +1,103 @@
-/*
 package com.otto.ProjectSpring.service.impl;
 
-import dao.RouteDao;
-import dao.impl.RouteDaoImpl;
-import entity.Route;
-import service.RouteService;
 
-import javax.servlet.http.HttpServletRequest;
+import com.otto.ProjectSpring.dao.BusRepository;
+import com.otto.ProjectSpring.dao.RouteRepository;
+import com.otto.ProjectSpring.entity.Bus;
+import com.otto.ProjectSpring.entity.Route;
+import com.otto.ProjectSpring.service.AssignmentService;
+import com.otto.ProjectSpring.service.RouteService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import javax.annotation.Resource;
+import java.lang.invoke.MethodHandles;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Optional;
 
-import static web.Constants.*;
-import static web.Constants.BUS_SPEED;
+import static com.otto.ProjectSpring.Constants.BUS_SPEED;
 
+@Service
+@Transactional
 public class RouteServiceImpl implements RouteService {
 
-    private static final String NUMBER = "number";
-    private static final String START = "start";
-    private static final String END = "end";
-    private static final String LENGTH = "length";
-    private static final String ID = "id";
+    private static final Logger LOG = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-    private static final String NUMBER_MSG = "Number must not be empty";
-    private static final String START_MSG = "Start point must not be empty";
-    private static final String END_MSG = "End point must not be empty";
-    private static final String LENGTH_MSG = "Length input is incorrect";
+    @Resource
+    RouteRepository routeRepository;
 
-    private static final String LENGTH_PATTERN = "\\d+";
+    @Resource
+    BusRepository busRepository;
 
-    private static RouteDao routeDao;
-
-    static{
-        routeDao = new RouteDaoImpl();
-    }
+    @Resource
+    AssignmentService assignmentService;
 
     @Override
     public List<Route> getAllRoutes() {
-
-        List<Route> routes = routeDao.getAllRoutes();
+        List<Route> routes = (ArrayList)routeRepository.findAll();
         for(Route route: routes){
             if(route.getBuses().size()!=0){
                 route.setTimeInterval(calculateTimeInterval(route));
             }
         }
         return routes;
+
     }
 
     @Override
     public Route getRouteById(int id) {
-        return routeDao.getRouteById(id);
+        Route route = routeRepository.findById(id).get();
+        route.setTimeInterval(calculateTimeInterval(route));
+        return route;
     }
 
     @Override
-    public void addRoute(HttpServletRequest request) {
-
-        Route route = getRouteFromRequest(request);
-        routeDao.addRoute(route);
+    public void addRoute(Route route) {
+        routeRepository.save(route);
+        LOG.info("Route successfilly persisted");
     }
 
     @Override
-    public void deleteRoute(HttpServletRequest request) {
-
-        int id = (Integer) request.getAttribute(ID);
-        routeDao.deleteRoute(id);
+    public void deleteRoute(int id) {
+        Route route = routeRepository.findById(id).get();
+        for(Bus bus: route.getBuses()){
+            assignmentService.cancelAssignment(bus.getDriver().getId());
+            bus.setRoute(null);
+        }
+        routeRepository.delete(route);
+        LOG.info("Route {} successfully deleted", id);
     }
 
     @Override
-    public void updateRoute(HttpServletRequest request) {
+    public void updateRoute(int id, Route route) {
+        Route oldRoute = routeRepository.findById(id).get();
+        Optional<Bus> busOptional = busRepository.findById(route.getNewBusId());
 
-        Route route = getRouteFromRequest(request);
-        routeDao.updateRoute(route);
-    }
+        oldRoute.setNumber(route.getNumber());
+        oldRoute.setStartPoint(route.getStartPoint());
+        oldRoute.setEndPoint(route.getEndPoint());
+        oldRoute.setLength(route.getLength());
 
-    @Override
-    public boolean validateRouteInput(HttpServletRequest request) {
+        busOptional.ifPresent(bus -> {
+            bus.setRoute(oldRoute);
+            assignmentService.createNewAssignment(bus);
+        });
 
-        String number = request.getParameter(NUMBER);
-        String start = request.getParameter(START);
-        String end = request.getParameter(END);
-        String length = request.getParameter(LENGTH);
-
-        boolean routeInputIncorrect = false;
-
-        if (nullOrEmpty(number)) {
-            request.setAttribute("numberVal", NUMBER_MSG);
-           routeInputIncorrect = true;
-        }
-
-        if (nullOrEmpty(start)) {
-            request.setAttribute("startVal", START_MSG);
-            routeInputIncorrect = true;
-        }
-
-        if (nullOrEmpty(end)) {
-            request.setAttribute("endVal", END_MSG);
-            routeInputIncorrect = true;
-        }
-
-        if (validateLength(length)) {
-            request.setAttribute("lengthVal", LENGTH_MSG);
-            routeInputIncorrect = true;
-        }
-        return routeInputIncorrect;
+        routeRepository.save(oldRoute);
+        LOG.info("Route {} successfully updated", id);
     }
 
     private int calculateTimeInterval(Route route){
         int length = route.getLength();
-        int timeOneSide = length/BUS_SPEED;
+        int timeOneSide = length/ BUS_SPEED;
         int timeBothSides = timeOneSide * 2;
-        return timeBothSides / route.getBuses().size();
-    }
-
-    private Route getRouteFromRequest(HttpServletRequest request){
-
-        String number = request.getParameter(NUMBER);
-        String start = request.getParameter(START);
-        String end = request.getParameter(END);
-        String length = request.getParameter(LENGTH);
-        Object routeId = request.getAttribute("id");
-
-        Route route = new Route();
-        route.setNumber(number);
-        route.setStartPoint(start);
-        route.setEndPoint(end);
-        route.setLength(Integer.parseInt(length));
-        if(routeId!=null){
-            route.setId((Integer) routeId);
+        int busesCount = route.getBuses().size();
+        if(busesCount == 0){
+            return 0;
         }
-
-        return route;
+        return timeBothSides / busesCount;
     }
-
-    private boolean nullOrEmpty(String val){
-        return val == null || val.isEmpty();
-    }
-
-    private boolean matchesPattern(String val, String patternString){
-        Pattern pattern = Pattern.compile(patternString);
-        Matcher matcher = pattern.matcher(val);
-        return matcher.matches();
-    }
-
-    private boolean validateLength(String length){
-        if(nullOrEmpty(length)){
-            return true;
-        }
-        return !matchesPattern(length, LENGTH_PATTERN);
-    }
-
-
 }
-*/

@@ -12,6 +12,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import static com.otto.ProjectSpring.Constants.IMAGE_FOLDER;
+
 /**
  *
  * Utility class containing static methods
@@ -28,15 +30,14 @@ public class ImageUtils {
      *
      * @param image - MultipartFile(image that needs to be saved)
      * @param request - HttpServletRequest needed to get root directory
-     * @param folderStructure - explicit folder structure of your project, for example: "\\WEB-INF\\resources\\images"
      * @param id - name of the resulting image file
      *
      *
      */
 
-    public static void saveImage(MultipartFile image, HttpServletRequest request, String folderStructure, int id){
+    public static void saveImage(MultipartFile image, HttpServletRequest request, int id){
         String rootDirectory = request.getSession().getServletContext().getRealPath("/");
-        Path path = Paths.get(rootDirectory + folderStructure + id +".png");
+        Path path = Paths.get(rootDirectory + IMAGE_FOLDER + id +".png");
         if(image!=null && !image.isEmpty()){
             try{
                 image.transferTo(new File(path.toString()));
@@ -51,13 +52,12 @@ public class ImageUtils {
      * Method for deleting picture from HD
      *
      * @param request - HttpServletRequest needed to get root directory
-     * @param folderStructure - explicit folder structure of your project, for example: "\\WEB-INF\\resources\\images"
      * @param id- name of the image file
      */
 
-    public static void deleteImage(HttpServletRequest request, String folderStructure, int id){
+    public static void deleteImage(HttpServletRequest request, int id){
         String rootDirectory = request.getSession().getServletContext().getRealPath("/");
-        Path path = Paths.get(rootDirectory + folderStructure + id +".png");
+        Path path = Paths.get(rootDirectory + IMAGE_FOLDER + id +".png");
 
         if(Files.exists(path)){
             try{

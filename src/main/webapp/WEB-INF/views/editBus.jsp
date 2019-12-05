@@ -1,3 +1,4 @@
+<%@taglib prefix="form" uri="http://www.springframework.org/tags/form"%>
 <%@include file="/WEB-INF/views/template/header.jsp"%>
 
 
@@ -10,33 +11,25 @@
         </div>
 
 
-         <form name="addDriverForm" action="<c:url value="/app/admin/buses/editBus/${bus.id}"/>" method="post">
+           <form:form action="${pageContext.request.contextPath}/admin/buses/editBus/${bus.id}" modelAttribute="bus" method="post">
 
-            <c:if test="${not empty numberVal}">
-                <div class="error" style="color: #ff0000">${numberVal}</div>
-         </c:if>
+               <div class="form-group">
+                   <label for="number"><fmt:message key = "routes.number"/></label><form:errors path="number" cssStyle="color: #ff0000" />
+                   <form:input type="text" path="number" class="form-Control"/>
+               </div>
 
-         <div class="form-group">
-            <label for="number"><fmt:message key = "routes.number"/></label>
-            <input type="text" name="number" class="form-Control" value="${bus.number}"/>
-        </div>
-
-         <c:if test="${not empty modelVal}">
-              <div class="error" style="color: #ff0000">${modelVal}</div>
-         </c:if>
-
-        <div class="form-group">
-            <label for="model"><fmt:message key = "routes.model"/></label>
-            <input type="text" name="model" class="form-Control" value="${bus.model}"/>
-        </div>
+               <div class="form-group">
+                   <label for="model"><fmt:message key = "routes.model"/></label></label><form:errors path="model" cssStyle="color: #ff0000" />
+                   <form:input type="text" path="model" class="form-Control"/>
+               </div>
 
         <br>
 
          <label class="radio-inline">
-              <input type="radio" name="ready" value="true"checked><fmt:message key = "driver.ready"/>
+             <form:radiobutton path="ready" value="true" checked="checked"/><fmt:message key = "driver.ready"/>
             </label>
             <label class="radio-inline">
-              <input type="radio" name="ready" value="false"><fmt:message key = "driver.notready"/>
+              <form:radiobutton path="ready" value="false"/><fmt:message key = "driver.notready"/>
             </label>
 
             <br><br>
@@ -45,7 +38,7 @@
 
         <c:choose>
               <c:when test="${bus.driver==null}">
-                    <p style="color: crimson"><fmt:message key = "option.none"/></p>
+                   <p style="color: crimson"><fmt:message key = "option.none"/></p>
               </c:when>
               <c:otherwise>
                    <p>${bus.driver.firstName} ${bus.driver.lastName}</p>
@@ -54,20 +47,32 @@
 
     <br>
 
-     <div class="form-group">
-           <label for="sel1"><fmt:message key = "bus.assign"/></label>
-           <select class="form-control" id="driverSelect" name="driverSelect">
-             <option value="none"><fmt:message key = "option.none"/></option>
-                <c:forEach items="${drivers}" var="driver">
-                         <option value="${driver.id}">${driver.firstName} ${driver.lastName}</option>
-                </c:forEach>
-           </select>
+
+     <fmt:message key = "bus.assign"/> <input type="checkbox" id="myCheck"  name="check" onclick="myFunction()">
+
+     <script>
+     function myFunction() {
+       var checkBox = document.getElementById("myCheck");
+       var select = document.getElementById("driverSelect");
+       var vis = "none";
+       if (checkBox.checked == true){
+         vis = "block";
+        }
+       select.style.display = vis;
+      }
+     </script>
+
+     <div class="form-group" id="driverSelect" style="display:none">
+          <form:select path="driver.id">
+                <form:option value="0" label="none"/>
+                <form:options items="${drivers}" />
+           </form:select>
      </div>
 
      <br><br>
 
         <input type="submit" value="<fmt:message key = "button.submit"/>" class="btn btn-default">
-        </form>
+        </form:form>
 
         <br><br>
 

@@ -4,7 +4,7 @@
     <div class="container">
         <div id="login-box">
 
-            <img src="<c:url value="/resources/images/gandalf.jpg"/>" alt="image" style="width: 100%" />
+            <img src="<c:url value="/images/gandalf.jpg"/>" alt="image" style="width: 100%" />
 
            </div>
     </div>

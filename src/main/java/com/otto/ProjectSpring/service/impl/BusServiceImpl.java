@@ -1,184 +1,127 @@
-/*
 package com.otto.ProjectSpring.service.impl;
 
-import dao.BusDao;
-import dao.impl.BusDaoImpl;
-import entity.Bus;
-import entity.Driver;
-import service.AssignmentService;
-import service.BusService;
-import service.DriverService;
 
-import javax.servlet.http.HttpServletRequest;
+import com.otto.ProjectSpring.dao.BusRepository;
+import com.otto.ProjectSpring.dao.DriverRepository;
+import com.otto.ProjectSpring.entity.Bus;
+import com.otto.ProjectSpring.entity.Driver;
+import com.otto.ProjectSpring.service.AssignmentService;
+import com.otto.ProjectSpring.service.BusService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import javax.annotation.Resource;
+import java.lang.invoke.MethodHandles;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
-import static web.Constants.ASSIGNMENT_SERVICE;
-import static web.Constants.DRIVER_SERVICE;
 
+@Service
+@Transactional
 public class BusServiceImpl implements BusService {
 
-    private static final String NUMBER = "number";
-    private static final String MODEL = "model";
-    private static final String ID = "id";
-    private static final String READY = "ready";
-    private static final String DRIVER_SELECT = "driverSelect";
+    private static final Logger LOG = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-    private static final String NUMBER_MSG = "Number must not be empty";
-    private static final String MODEL_MSG = "Model must not be empty";
+    @Resource
+    BusRepository busRepository;
 
-    private static BusDao busDao;
+    @Resource
+    DriverRepository driverRepository;
 
-    static {
+    @Resource
+    AssignmentService assignmentService;
 
-        busDao = new BusDaoImpl();
+    @Override
+    public List<Bus> getAllBuses() {
+        return (ArrayList) busRepository.findAll();
     }
 
     @Override
-    public List<Bus> getAllBuses(HttpServletRequest request) {
-
-        List<Bus> buses = busDao.getAllBuses();
-        request.setAttribute("buses", buses);
-        return buses;
+    public Map<Integer, String> getReadyBuses() {
+        List<Bus> allBuses = (ArrayList)busRepository.findAll();
+        Map<Integer, String> readyBuses = allBuses.stream()
+                .filter(b-> b.getDriver()!=null && b.isReady() && b.getRoute() == null)
+                .collect(Collectors.toMap(Bus::getId, bus -> bus.getModel()
+                        + " " + bus.getDriver().getFirstName()
+                        + " " + bus.getDriver().getLastName()));
+        LOG.info("Found {} buses ready for route", readyBuses.size());
+        return readyBuses;
     }
 
     @Override
-    public List<Bus> getReadyForRoute() {
-        return busDao.getReadyForRoute();
-    }
-
-    @Override
-    public Bus getBusById(int id) {
-
-        return busDao.getBusById(id);
-    }
-
-    @Override
-    public int addBus(HttpServletRequest request) {
-
-        Bus bus = getBusFromRequest(request);
-        return busDao.addBus(bus);
+    public void addBus(Bus bus) {
+        bus.setReady(true);
+        busRepository.save(bus);
+        LOG.info("Bus {} successfully persisted", bus.getId());
     }
 
     @Override
     public void deleteBus(int id) {
-        busDao.deleteBus(id);
+        Bus bus = busRepository.findById(id).get();
+        setDriverFree(bus.getDriver());
+        busRepository.deleteById(id);
+        LOG.info("Bus {} successfully deleted", id);
     }
 
     @Override
-    public void updateBus(HttpServletRequest request) {
-
-        DriverService driverService = (DriverServiceImpl) request.getServletContext()
-                .getAttribute(DRIVER_SERVICE);
-        AssignmentService assignmentService = (AssignmentServiceImpl) request.getServletContext()
-                .getAttribute(ASSIGNMENT_SERVICE);
-
-        int id = (Integer) request.getAttribute(ID);
-        String ready = request.getParameter(READY);
-        String driverId = request.getParameter(DRIVER_SELECT);
-
-        Bus bus = getBusById(id);
-        Driver oldDriver = bus.getDriver();
-
-        if ("true".equals(ready)) {
-            setReady(id);
-
-            if ("none".equals(driverId)) {
-                if (oldDriver != null) {
-                    bus.setDriver(null);
-                    driverService.setFree(oldDriver.getId(), true);
-                    assignmentService.cancelForDriver(oldDriver.getId());
-                }
-            } else {
-
-                Driver newDriver = new Driver();
-                int newDriverId = Integer.parseInt(driverId);
-                newDriver.setId(newDriverId);
-                bus.setDriver(newDriver);
-                driverService.setFree(newDriverId, false);
-
-                if (oldDriver != null) {
-                    driverService.setFree(oldDriver.getId(), true);
-                    assignmentService.cancelForDriver(oldDriver.getId());
-                }
-            }
-        } else {
-            setNotReady(id);
-            bus.setDriver(null);
-            if (oldDriver != null) {
-                driverService.setFree(oldDriver.getId(), true);
-                assignmentService.cancelForDriver(oldDriver.getId());
-            }
-        }
-        bus.setNumber(request.getParameter(NUMBER));
-        bus.setModel(request.getParameter(MODEL));
-        busDao.updateBus(bus);
+    public Bus getBusById(int id) {
+        return busRepository.findById(id).get();
     }
 
     @Override
-    public void setReady(int id) {
-        busDao.setReady(id);
-    }
+    public void updateBus(int id, Bus bus, boolean checked) {
 
-    @Override
-    public void setNotReady(int id) {
-        busDao.setNotReady(id);
-    }
+        Bus oldBus = busRepository.findById(id).get();
+        int driverId = bus.getDriver().getId();
+        Optional<Driver> driverOptional = driverRepository.findById(driverId);
+        Driver oldDriver = oldBus.getDriver();
 
-    @Override
-    public boolean validateBusInput(HttpServletRequest request) {
+        oldBus.setNumber(bus.getNumber());
+        oldBus.setModel(bus.getModel());
+        oldBus.setReady(bus.isReady());
 
-        boolean inputIncorrect = false;
-        Bus bus = getBusFromRequest(request);
-
-        if (validateBusNumber(bus.getNumber())) {
-            request.setAttribute("numberVal", NUMBER_MSG);
-            inputIncorrect = true;
+        if (!bus.isReady()) {
+            setDriverFree(oldDriver);
+            oldBus.setDriver(null);
+            oldBus.setRoute(null);
+            busRepository.save(oldBus);
+            LOG.info("Bus {} is now not ready", id);
+            return;
         }
 
-        if (validateBusModel(bus.getModel())) {
-            request.setAttribute("modelVal", MODEL_MSG);
-            inputIncorrect = true;
+        if(checked){
+            setDriverFree(oldDriver);
+            oldBus.setDriver(driverOptional.orElse(null));
+            driverOptional.ifPresent(d -> d.setFree(false));
         }
 
-        request.setAttribute("bus", bus);
-
-        return inputIncorrect;
+        busRepository.save(oldBus);
+        LOG.info("Bus {} successfully updated", id);
     }
 
     @Override
-    public void addBusToRoute(HttpServletRequest request) {
+    public void removeBusFromRoute(int id) {
 
-        String busId = request.getParameter("busSelect");
-        int routeId = (Integer) request.getAttribute("id");
-        busDao.setRoute(Integer.parseInt(busId), routeId);
+        Bus bus = busRepository.findById(id).get();
+        int driverId = bus.getDriver().getId();
+
+        bus.setRoute(null);
+        busRepository.save(bus);
+        assignmentService.cancelAssignment(driverId);
+        LOG.info("Bus {} removed from route", id);
     }
 
-    @Override
-    public void removeBusFromRoute(HttpServletRequest request) {
-
-        int busId = (Integer)request.getAttribute("id");
-        busDao.setRoute(busId, 0);
-    }
-
-    private boolean validateBusNumber(String number) {
-        return number == null || number.isEmpty();
-    }
-
-    private boolean validateBusModel(String model) {
-        return model == null || model.isEmpty();
-    }
-
-    private Bus getBusFromRequest(HttpServletRequest request) {
-
-        String number = request.getParameter(NUMBER);
-        String model = request.getParameter(MODEL);
-
-        Bus bus = new Bus();
-        bus.setNumber(number);
-        bus.setModel(model);
-        bus.setReady(true);
-
-        return bus;
+    private void setDriverFree(Driver oldDriver) {
+        if (oldDriver != null) {
+            oldDriver.setFree(true);
+            driverRepository.save(oldDriver);
+            assignmentService.cancelAssignment(oldDriver.getId());
+            LOG.info("Driver {} is now free", oldDriver.getId());
+        }
     }
 }
-*/
