@@ -9,11 +9,11 @@ import java.util.Optional;
 
 public interface DriverRepository extends CrudRepository<Driver, Integer> {
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query("update Driver d set d.ready = ?1 where d.id = ?2")
     void setReadyFor( boolean ready, int id);
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query("update Driver d set d.free = ?1 where d.id = ?2")
     void setFreeFor( boolean free, int id);
 
