@@ -55,7 +55,7 @@
                             <td>${bus.driver.firstName} ${bus.driver.lastName}</td>
 
                             <td>
-                                <a href="<c:url value="/admin/routes/deleteBusFromRoute/${bus.id}"/>">
+                                <a href="${pageContext.request.contextPath}/admin/routes/deleteBusFromRoute/${bus.id}">
                                     <button type="button" class="btn btn-danger"><fmt:message key = "button.delete"/></button></a>
                             </td>
                         </tr>
@@ -78,7 +78,7 @@
         <br><br>
         <input type="submit" value="<fmt:message key = "button.submit"/>" class="btn btn-default">
 
-        <a href="<c:url value="/admin/routes"/>">
+        <a href="${pageContext.request.contextPath}/admin/routes">
          <button type="button" class="btn btn-secondary"><fmt:message key = "button.back"/></button></a>
 
        </form:form>

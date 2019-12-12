@@ -11,7 +11,7 @@
                 <div class="msg">${msg}</div>
             </c:if>
 
-            <form name="loginForm" action="<c:url value="/login" />" method="post">
+            <form name="loginForm" action="${pageContext.request.contextPath}/login"  method="post">
 
                   <c:if test="${param.error != null}">
                       <div class="error" style="color: #ff0000"><fmt:message key = "login.error.bad.credentials"/></div>

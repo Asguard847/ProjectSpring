@@ -26,10 +26,10 @@
     <script type="text/javascript" src="https://cdn.datatables.net/1.10.19/js/jquery.dataTables.min.js"></script>
 
     <!-- Bootstrap core CSS -->
-    <link  rel="stylesheet" href="<c:url value="/css/bootstrap.min.css" />" type="text/css">
+    <link  rel="stylesheet" href="${pageContext.request.contextPath}/css/bootstrap.min.css"  type="text/css">
 
     <!-- Main CSS -->
-    <link rel="stylesheet" href="<c:url value="/css/main.css" />" type="text/css">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/main.css"  type="text/css">
 
     <link href="https://cdn.datatables.net/1.10.19/css/jquery.dataTables.min.css" rel="stylesheet">
 
@@ -59,7 +59,7 @@
                 <div id="navbar" class="navbar-collapse collapse">
                     <ul class="nav navbar-nav">
                       <sec:authorize access="hasRole('ADMIN')">
-                         <li><a href="<c:url value="/admin"/> "><spring:message code="header.admin"/></a></li>
+                         <li><a href="${pageContext.request.contextPath}/admin"> <spring:message code="header.admin"/></a></li>
                       </sec:authorize>
                     </ul>
                     <ul class="nav navbar-nav pull-right">
@@ -68,7 +68,7 @@
                            <li><a href="?locale=ru">rus</a></li>
                            <li><a href="?locale=en">en</a></li>
                         <c:if test="${pageContext.request.userPrincipal.name != null}">
-                            <li><a href="<c:url value="/logout"/> "><fmt:message key = "header.logout"/></a></li>
+                            <li><a href="${pageContext.request.contextPath}/logout"> <fmt:message key = "header.logout"/></a></li>
                         </c:if>
 
                     </ul>
