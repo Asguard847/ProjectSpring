@@ -15,7 +15,7 @@
         <div class="page-header">
             <h1><fmt:message key = "routes"/></h1>
             <p class="lead"><fmt:message key = "routes.page"/></p>
-            <a href="<c:url value="/admin/routes/addRoute" />"class="btn btn-primary"><fmt:message key = "button.add"/></a>
+            <a href="${pageContext.request.contextPath}/admin/routes/addRoute" class="btn btn-primary"><fmt:message key = "button.add"/></a>
         </div>
 
 
@@ -46,9 +46,9 @@
                     </c:choose></td>
                     <td>${route.timeInterval}</td>
                     <td>
-                        <a href="<c:url value="/admin/routes/deleteRoute/${route.id}"/>">
+                        <a href="${pageContext.request.contextPath}/admin/routes/deleteRoute/${route.id}">
                             <button type="button" class="btn btn-danger"><fmt:message key = "button.delete"/></button></a>
-                        <a href="<c:url value="/admin/routes/editRoute/${route.id}"/>">
+                        <a href="${pageContext.request.contextPath}/admin/routes/editRoute/${route.id}">
                             <button type="button" class="btn btn-warning"><fmt:message key = "button.edit"/></button></a>
                     </td>
                 </tr>
